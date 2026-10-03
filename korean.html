@@ -390,7 +390,7 @@
       $('next').hidden = true;
       $('feedback').textContent = '';
       $('feedback').className = 'feedback';
-      $('hard').disabled = $('easy').disabled = true;
+      $('hard').disabled = $('easy').disabled = !current;
       $('flip').disabled = !current;
       $('flip').textContent = 'Show answer';
       $('audio').disabled = !current || !('speechSynthesis' in window);
@@ -465,11 +465,10 @@
       $('backFace').inert = !isFlipped;
       $('backFace').setAttribute('aria-hidden', String(!isFlipped));
       $('flip').textContent = isFlipped ? 'Show question' : 'Show answer';
-      $('hard').disabled = $('easy').disabled = !isFlipped;
     }
 
     function markCard(remembered) {
-      if (!current || !isStudy() || !isFlipped) return;
+      if (!current || !isStudy()) return;
       if (remembered) learnedCount++;
       else queue.push(current);
       nextWord(false);
