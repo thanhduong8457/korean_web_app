@@ -260,9 +260,9 @@
   <form class="practice-panel" id="answerForm">
     <label for="answer" id="answerLabel">Type the English meaning</label>
     <input id="answer" type="text" lang="en" placeholder="Your answer" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="answerHelp feedback" disabled>
-    <p class="hint" id="answerHelp">Use a listed meaning or alternative. Capitalization, extra spaces, and final punctuation are ignored.</p>
+    <p class="hint" id="answerHelp">Use a listed meaning or alternative. Capitalization, extra spaces, and final punctuation are ignored. Leave the box empty to show the answer and count this question as incorrect.</p>
     <div class="action-panel">
-      <button class="btn-action btn-easy" id="check" type="submit" disabled>Check answer</button>
+      <button class="btn-action btn-easy" id="check" type="submit" disabled>Show answer</button>
       <button class="btn-action" id="next" type="button" hidden>Next word →</button>
     </div>
     <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
@@ -385,6 +385,7 @@
       $('answerForm').hidden = isStudy();
       $('studyPanel').hidden = !isStudy();
       $('answer').value = '';
+      updateAnswerButton();
       $('answer').disabled = !current;
       $('check').disabled = !current;
       $('next').hidden = true;
@@ -420,14 +421,13 @@
       return parts.map(part => normalize(part, english)).filter(Boolean);
     }
 
+    function updateAnswerButton() {
+      $('check').textContent = $('answer').value.trim() ? 'Check answer' : 'Show answer';
+    }
+
     function checkAnswer(event) {
       event.preventDefault();
       if (!current || checked || isStudy()) return;
-      if (!$('answer').value.trim()) {
-        $('feedback').textContent = 'Please type an answer first.';
-        $('answer').focus();
-        return;
-      }
       const english = isKoreanPrompt();
       const expected = english ? current.en : current.kr;
       const match = answerVariants(expected, english).includes(normalize($('answer').value, english));
@@ -514,6 +514,7 @@
       event.target.value = '';
     });
     $('answerForm').addEventListener('submit', checkAnswer);
+    $('answer').addEventListener('input', updateAnswerButton);
     // Do not submit while Enter is being used to compose Korean text with an IME.
     $('answer').addEventListener('keydown', event => {
       if (event.key === 'Enter' && (event.isComposing || event.keyCode === 229)) event.preventDefault();
