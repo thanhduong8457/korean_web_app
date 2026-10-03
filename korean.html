@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Korean Vocabulary Practice</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --primary: #3b82f6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --accent: #8b5cf6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    header {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    select, button {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid #334155;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+    }
+    select:focus, button:hover { border-color: var(--primary); }
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #334155;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      transition: width 0.3s ease;
+    }
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+    .scene {
+      width: 100%;
+      max-width: 600px;
+      height: 320px;
+      perspective: 1000px;
+    }
+    .card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.4s cubic-bezier(0.4, 0.2, 0.2, 1);
+      cursor: pointer;
+    }
+    .card.is-flipped { transform: rotateY(180deg); }
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 16px;
+      background: var(--card-bg);
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    .card-face.back {
+      transform: rotateY(180deg);
+      background: #192231;
+    }
+    .category-badge {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: #334155;
+      color: var(--text-sub);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .audio-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--text-sub);
+    }
+    .audio-btn:hover { color: var(--primary); }
+    .word-korean {
+      font-size: 34px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+    .word-meaning {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+    .word-sub {
+      font-size: 15px;
+      color: var(--text-sub);
+    }
+    .hint {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .action-panel {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .btn-action {
+      flex: 1;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 10px;
+      border: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-hard { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+    .btn-hard:hover { background: var(--danger); color: white; }
+    .btn-easy { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+    .btn-easy:hover { background: var(--success); color: white; }
+    .shortcuts {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+    }
+    h1 { font-size: 26px; }
+    .intro, .status { color: var(--text-sub); font-size: 14px; line-height: 1.6; }
+    .controls label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-sub); }
+    .controls select { max-width: 100%; }
+    .stats { flex-wrap: wrap; gap: 10px; line-height: 1.6; }
+    .scene { height: 300px; }
+    .card { cursor: default; }
+    .card-face { overflow-wrap: anywhere; padding: 62px 24px 28px; }
+    .category-badge { max-width: calc(100% - 85px); text-align: left; }
+    .word-korean, .word-meaning { font-size: clamp(23px, 5vw, 34px); }
+    .hint, .shortcuts { color: var(--text-sub); line-height: 1.6; }
+    .practice-panel, .study-panel { width: 100%; max-width: 600px; margin-top: 24px; }
+    #answer { width: 100%; margin-top: 8px; padding: 14px; font-size: 18px; background: var(--card-bg); color: var(--text-main); border: 1px solid #475569; border-radius: 8px; }
+    .action-panel { margin-top: 12px; }
+    .feedback { margin-top: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+    .feedback.correct { color: #6ee7b7; }
+    .feedback.incorrect { color: #fca5a5; }
+    button:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
+    :focus-visible { outline: 3px solid #38bdf8; outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    .file-panel { margin-top: 8px; }
+    input[type="file"] { width: 100%; margin-top: 8px; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Korean Vocabulary Practice</h1>
+    <p class="intro">A little practice, every day. Choose a direction and test your vocabulary.</p>
+    <div class="controls">
+      <label>Practice mode
+        <select id="mode" disabled>
+          <option value="ko-en">Korean → English</option>
+          <option value="en-ko">English → Korean</option>
+        </select>
+      </label>
+      <label>Category
+        <select id="lessonFilter" disabled><option value="all">All categories</option></select>
+      </label>
+      <label>Activity
+        <select id="activity" disabled>
+          <option value="practice">Type an answer</option>
+          <option value="study">Review flashcards</option>
+        </select>
+      </label>
+      <button id="reset" disabled>Restart session</button>
+    </div>
+    <p class="status" id="loadStatus" role="status">Loading data_base.csv…</p>
+    <div class="file-panel" id="filePanel" hidden>
+      <label for="csvFile">Choose data_base.csv from the same folder as this page:</label>
+      <input id="csvFile" type="file" accept=".csv,text/csv">
+    </div>
+    <div class="stats" aria-label="Session progress">
+      <span>Answered: <strong id="answeredCount">0</strong></span>
+      <span>Correct: <strong id="correctCount">0</strong></span>
+      <span>Incorrect: <strong id="incorrectCount">0</strong></span>
+      <span>Accuracy: <strong id="accuracy">0%</strong></span>
+    </div>
+    <div class="progress-bar-container" role="progressbar" aria-label="Session accuracy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="accuracyBar">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <p class="status" id="cardCount">Waiting for vocabulary.</p>
+  </header>
+
+  <main class="scene" aria-label="Vocabulary card">
+    <div class="card" id="card">
+      <div class="card-face front" id="frontFace">
+        <span class="category-badge" id="cardCategory">Vocabulary</span>
+        <button class="audio-btn" id="audio" title="Listen to Korean pronunciation" aria-label="Listen to Korean pronunciation" disabled>🔊</button>
+        <div class="word-korean" id="frontWord">Ready to learn?</div>
+        <div class="hint" id="cardHint">Your vocabulary will appear here.</div>
+      </div>
+      <div class="card-face back" id="backFace" inert aria-hidden="true">
+        <span class="category-badge">Answer</span>
+        <div class="word-meaning" id="backMeaning"></div>
+        <div class="hint">Rate your recall below.</div>
+      </div>
+    </div>
+  </main>
+
+  <form class="practice-panel" id="answerForm">
+    <label for="answer" id="answerLabel">Type the English meaning</label>
+    <input id="answer" type="text" lang="en" placeholder="Your answer" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="answerHelp feedback" disabled>
+    <p class="hint" id="answerHelp">Use a listed meaning or alternative. Capitalization, extra spaces, and final punctuation are ignored.</p>
+    <div class="action-panel">
+      <button class="btn-action btn-easy" id="check" type="submit" disabled>Check answer</button>
+      <button class="btn-action" id="next" type="button" hidden>Next word →</button>
+    </div>
+    <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+  </form>
+
+  <section class="study-panel" id="studyPanel" aria-label="Flashcard review" hidden>
+    <button id="flip">Show answer</button>
+    <div class="action-panel">
+      <button class="btn-action btn-hard" id="hard" disabled>Practice again</button>
+      <button class="btn-action btn-easy" id="easy" disabled>Remembered</button>
+    </div>
+    <p class="hint" id="studyProgress"></p>
+  </section>
+  <p class="shortcuts" id="shortcuts">Press Enter to check your answer, then Enter for the next word.</p>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let fullData = [], deck = [], queue = [], current = null;
+    let checked = false, isFlipped = false, learnedCount = 0;
+    let answered = 0, correct = 0;
+    const isStudy = () => $('activity').value === 'study';
+    const isKoreanPrompt = () => $('mode').value === 'ko-en';
+
+    // Parse quoted fields, escaped quotes, BOM, and CRLF without dependencies.
+    // Invalid records are discarded; an unterminated quoted record is skipped.
+    function parseCSV(text) {
+      text = text.replace(/^\uFEFF/, '');
+      const rows = [];
+      let row = [], field = '', quoted = false, closed = false, invalid = false;
+      const finishField = () => { row.push(field.trim()); field = ''; closed = false; };
+      const finishRow = () => {
+        finishField();
+        if (row.some(Boolean)) rows.push({ cells: row, invalid });
+        row = []; invalid = false;
+      };
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (quoted) {
+          if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+          else if (ch === '"') { quoted = false; closed = true; }
+          else field += ch;
+        } else if (ch === ',') finishField();
+        else if (ch === '\n' || ch === '\r') {
+          if (ch === '\r' && text[i + 1] === '\n') i++;
+          finishRow();
+        } else if (ch === '"' && !field.trim() && !closed) { field = ''; quoted = true; }
+        else {
+          if (ch === '"' || (closed && ch.trim())) invalid = true;
+          field += ch;
+        }
+      }
+      if (quoted) invalid = true;
+      if (field || row.length || invalid) finishRow();
+      return rows;
+    }
+
+    function readVocabulary(text) {
+      const rows = parseCSV(text);
+      const header = rows.shift();
+      if (!header || header.invalid) throw new Error('The CSV header is missing or malformed.');
+      const names = header.cells.map(name => name.toLowerCase());
+      const kr = names.indexOf('korean'), en = names.indexOf('english'), cat = names.indexOf('category');
+      if (kr < 0 || en < 0) throw new Error('The CSV must contain Korean and English columns.');
+      let skipped = 0;
+      const data = [], seen = new Set();
+      for (const row of rows) {
+        const cells = row.cells;
+        if (row.invalid || cells.length !== names.length || !cells[kr] || !cells[en]) { skipped++; continue; }
+        const category = cat < 0 ? 'General' : cells[cat] || 'General';
+        const key = JSON.stringify([category, cells[kr], cells[en]]);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        data.push({ id: key, kr: cells[kr], en: cells[en], cat: category });
+      }
+      if (!data.length) throw new Error('No usable vocabulary rows were found.');
+      return { data, skipped };
+    }
+
+    function shuffle(items) {
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      return items;
+    }
+
+    function refillQueue(previous) {
+      queue = shuffle([...deck]);
+      avoidRepeat(previous);
+    }
+
+    function avoidRepeat(previous) {
+      if (queue.length > 1 && previous && queue[0].kr === previous.kr) {
+        const different = queue.findIndex(item => item.kr !== previous.kr);
+        if (different > 0) [queue[0], queue[different]] = [queue[different], queue[0]];
+      }
+    }
+
+    function filterDeck(resetStats = false) {
+      const previous = current;
+      deck = fullData.filter(item => $('lessonFilter').value === 'all' || item.cat === $('lessonFilter').value);
+      learnedCount = 0;
+      if (resetStats) { answered = 0; correct = 0; }
+      refillQueue(previous);
+      nextWord(false);
+    }
+
+    function nextWord(refill = true) {
+      const previous = current;
+      if (!queue.length && refill && !isStudy()) refillQueue(previous);
+      avoidRepeat(previous);
+      current = queue.shift() || null;
+      checked = false;
+      isFlipped = false;
+      $('card').classList.remove('is-flipped');
+      $('frontFace').inert = false;
+      $('frontFace').setAttribute('aria-hidden', 'false');
+      $('backFace').inert = true;
+      $('backFace').setAttribute('aria-hidden', 'true');
+      $('answerForm').hidden = isStudy();
+      $('studyPanel').hidden = !isStudy();
+      $('answer').value = '';
+      $('answer').disabled = !current;
+      $('check').disabled = !current;
+      $('next').hidden = true;
+      $('feedback').textContent = '';
+      $('feedback').className = 'feedback';
+      $('hard').disabled = $('easy').disabled = true;
+      $('flip').disabled = !current;
+      $('flip').textContent = 'Show answer';
+      $('audio').disabled = !current || !('speechSynthesis' in window);
+      $('audio').hidden = !isKoreanPrompt() && !isStudy();
+      $('cardCategory').textContent = current ? current.cat : 'Complete';
+      $('frontWord').textContent = current ? (isKoreanPrompt() ? current.kr : current.en) : 'All cards remembered!';
+      $('frontWord').lang = isKoreanPrompt() ? 'ko' : 'en';
+      $('backMeaning').textContent = current ? (isKoreanPrompt() ? current.en : current.kr) : 'Restart the session or choose another category.';
+      $('backMeaning').lang = isKoreanPrompt() ? 'en' : 'ko';
+      $('cardHint').textContent = !current ? 'Restart the session or choose another category.' : isStudy() ? 'Select Show answer to review the translation.' : isKoreanPrompt() ? 'What does this mean in English?' : 'How do you say this in Korean?';
+      $('answerLabel').textContent = isKoreanPrompt() ? 'Type the English meaning' : 'Type the Korean word or phrase';
+      $('answer').lang = isKoreanPrompt() ? 'en' : 'ko';
+      $('shortcuts').textContent = isStudy() ? 'Space: flip • 1: practice again • 2: remembered • R: listen' : 'Press Enter to check your answer, then Enter for the next word.';
+      updateStats();
+      if (current && !isStudy()) $('answer').focus();
+    }
+
+    function normalize(value, english) {
+      const clean = value.normalize('NFC').trim().replace(/\s+/g, ' ').replace(/[.!?。！？]+$/u, '').trim();
+      return english ? clean.toLowerCase() : clean;
+    }
+
+    function answerVariants(value, english) {
+      const parts = [value, ...value.split(/\s+\/\s+/)];
+      // Parentheses provide optional explanations, e.g. "one (1)".
+      if (english) parts.push(...parts.map(part => part.replace(/\([^)]*\)/g, '').trim()));
+      return parts.map(part => normalize(part, english)).filter(Boolean);
+    }
+
+    function checkAnswer(event) {
+      event.preventDefault();
+      if (!current || checked || isStudy()) return;
+      if (!$('answer').value.trim()) {
+        $('feedback').textContent = 'Please type an answer first.';
+        $('answer').focus();
+        return;
+      }
+      const english = isKoreanPrompt();
+      const expected = english ? current.en : current.kr;
+      const match = answerVariants(expected, english).includes(normalize($('answer').value, english));
+      checked = true;
+      answered++;
+      if (match) correct++;
+      $('feedback').textContent = match ? `Correct! ${expected}` : `Incorrect. Correct answer: ${expected}`;
+      $('feedback').className = `feedback ${match ? 'correct' : 'incorrect'}`;
+      $('answer').disabled = true;
+      $('check').disabled = true;
+      $('next').hidden = false;
+      $('audio').hidden = false;
+      updateStats();
+      $('next').focus();
+    }
+
+    function updateStats() {
+      $('answeredCount').textContent = answered;
+      $('correctCount').textContent = correct;
+      $('incorrectCount').textContent = answered - correct;
+      const pct = answered ? Math.round(correct / answered * 100) : 0;
+      $('accuracy').textContent = `${pct}%`;
+      $('progressBar').style.width = `${pct}%`;
+      $('accuracyBar').setAttribute('aria-valuenow', pct);
+      $('cardCount').textContent = `${deck.length} words in this category selection · Session totals cover both practice modes.`;
+      $('studyProgress').textContent = `Remembered: ${learnedCount} / ${deck.length} · Remaining: ${queue.length + (current ? 1 : 0)}. Flashcard ratings do not affect practice scores.`;
+    }
+
+    function flipCard() {
+      if (!current || !isStudy()) return;
+      isFlipped = !isFlipped;
+      $('card').classList.toggle('is-flipped', isFlipped);
+      $('frontFace').inert = isFlipped;
+      $('frontFace').setAttribute('aria-hidden', String(isFlipped));
+      $('backFace').inert = !isFlipped;
+      $('backFace').setAttribute('aria-hidden', String(!isFlipped));
+      $('flip').textContent = isFlipped ? 'Show question' : 'Show answer';
+      $('hard').disabled = $('easy').disabled = !isFlipped;
+    }
+
+    function markCard(remembered) {
+      if (!current || !isStudy() || !isFlipped) return;
+      if (remembered) learnedCount++;
+      else queue.push(current);
+      nextWord(false);
+      $('flip').focus();
+    }
+
+    function speakCurrent() {
+      if (!current || !('speechSynthesis' in window)) return;
+      const utter = new SpeechSynthesisUtterance(current.kr);
+      utter.lang = 'ko-KR';
+      utter.rate = 0.9;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    }
+
+    function installVocabulary(text) {
+      const { data, skipped } = readVocabulary(text);
+      fullData = data;
+      $('lessonFilter').replaceChildren(new Option('All categories', 'all'));
+      [...new Set(data.map(item => item.cat))].sort().forEach(cat => $('lessonFilter').add(new Option(cat, cat)));
+      for (const id of ['mode', 'lessonFilter', 'activity', 'reset']) $(id).disabled = false;
+      $('loadStatus').textContent = `Loaded ${data.length} vocabulary items from data_base.csv.${skipped ? ` Skipped ${skipped} incomplete or malformed rows.` : ''}`;
+      $('filePanel').hidden = true;
+      filterDeck(true);
+    }
+
+    async function loadVocabulary() {
+      try {
+        const response = await fetch('./data_base.csv');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        installVocabulary(await response.text());
+      } catch (error) {
+        $('loadStatus').textContent = `Could not load data_base.csv automatically. ${location.protocol === 'file:' ? 'Your browser may block local file access.' : error.message} Choose the CSV below to continue.`;
+        $('filePanel').hidden = false;
+      }
+    }
+
+    $('csvFile').addEventListener('change', async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try { installVocabulary(await file.text()); }
+      catch (error) { $('loadStatus').textContent = `Could not read vocabulary: ${error.message} Choose a valid CSV and try again.`; }
+      event.target.value = '';
+    });
+    $('answerForm').addEventListener('submit', checkAnswer);
+    // Do not submit while Enter is being used to compose Korean text with an IME.
+    $('answer').addEventListener('keydown', event => {
+      if (event.key === 'Enter' && (event.isComposing || event.keyCode === 229)) event.preventDefault();
+    });
+    $('next').addEventListener('click', () => nextWord());
+    ['mode', 'lessonFilter', 'activity'].forEach(id => $(id).addEventListener('change', () => filterDeck()));
+    $('reset').addEventListener('click', () => filterDeck(true));
+    $('flip').addEventListener('click', flipCard);
+    $('hard').addEventListener('click', () => markCard(false));
+    $('easy').addEventListener('click', () => markCard(true));
+    $('audio').addEventListener('click', speakCurrent);
+    $('card').addEventListener('click', event => { if (!event.target.closest('button')) flipCard(); });
+    window.addEventListener('keydown', event => {
+      if (!isStudy() || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName)) return;
+      if (event.code === 'Space' && event.target.tagName !== 'BUTTON') { event.preventDefault(); flipCard(); }
+      else if (event.key === '1') markCard(false);
+      else if (event.key === '2') markCard(true);
+      else if (event.key.toLowerCase() === 'r') speakCurrent();
+    });
+    loadVocabulary();
+  </script>
+</body>
+</html>
