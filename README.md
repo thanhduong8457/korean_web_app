@@ -1,20 +1,17 @@
-# Korean Vocabulary Practice
+# Chinese Vocabulary Practice
 
-Open `korean.html` in a browser. If automatic loading is blocked, choose the adjacent `data_base.csv` using the file picker shown on the page.
-
-For automatic loading, run this command from this folder:
+Run the app from this folder with a local HTTP server:
 
 ```sh
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Then visit http://127.0.0.1:8000/korean.html.
+Open http://127.0.0.1:8000/chinese.html. If you open `chinese.html` directly and your browser blocks loading local files, choose the adjacent `new_word.md` with the file picker shown on the page.
 
-- Choose Korean → English or English → Korean, optionally filter by category, and type an answer.
-- Press Enter to check; press Enter again or select Next word to continue.
-- Spaced slash alternatives are accepted individually. English matching ignores case and optional parenthetical explanations. Both directions ignore extra whitespace and final sentence punctuation, and normalize Unicode.
-- Category labels distinguish native and Sino-Korean numbers with the same English meaning.
-- Review flashcards retains pronunciation, card flipping, and remembered/practice-again ratings. Pronunciation depends on browser speech support and installed Korean voices.
-- Scores cover typed answers in both modes for the current page session. Switching modes or categories preserves scores; Restart session or reloading the page clears them. Existing CSV history is not changed or included in session totals.
+The app reads vocabulary from `new_word.md` automatically. Each nonblank line uses `Simplified【Traditional】[Pinyin] Vietnamese meaning`. The Traditional form and Pinyin are optional. Invalid and duplicate lines are skipped, with line numbers shown in the loading status. The original Markdown and CSV files are never changed; `data_base.csv` is not loaded.
 
-The app uses the CSV's `Korean`, `English`, and optional `Category` columns. Blank, incomplete, malformed, and duplicate records are handled without hard-coded vocabulary. There are no external dependencies.
+- Choose Chinese → Vietnamese or Vietnamese → Chinese and type an answer. Enter checks it, then Enter advances to the next question.
+- Vietnamese answers ignore case and normalize Unicode while preserving accents. Commas, semicolons, and spaced slashes in a source meaning explicitly list accepted alternatives.
+- Chinese answers accept the Simplified form and the Traditional form when one is listed. Pinyin is shown after answering but is not accepted as a Chinese answer.
+- Review flashcards keeps card flipping, pronunciation, and remembered/practice-again ratings. Pronunciation depends on browser speech support and available Chinese voices.
+- Session progress counts typed answers across both practice modes. Restart session or reload the page to clear it.
