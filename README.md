@@ -2,6 +2,8 @@
 
 Open `korean.html` in a browser. If automatic loading is blocked, choose the adjacent `data_base.csv` using the file picker shown on the page.
 
+Select **Load vocabulary CSV** at any time to switch databases, including `data_base_new_words.csv`. The selected file's name and word count appear above the card. Loading a valid database refreshes categories and starts a new session with zero scores. Canceling the picker or choosing an invalid file preserves the current practice session.
+
 For automatic loading, run this command from this folder:
 
 ```sh

@@ -223,10 +223,11 @@
         </select>
       </label>
       <button id="reset" disabled>Restart session</button>
+      <button id="loadCsv" type="button">Load vocabulary CSV</button>
     </div>
     <p class="status" id="loadStatus" role="status">Loading data_base.csv…</p>
     <div class="file-panel" id="filePanel" hidden>
-      <label for="csvFile">Choose data_base.csv from the same folder as this page:</label>
+      <label for="csvFile">Choose a vocabulary CSV, such as data_base.csv or data_base_new_words.csv:</label>
       <input id="csvFile" type="file" accept=".csv,text/csv">
     </div>
     <div class="stats" aria-label="Session progress">
@@ -484,34 +485,51 @@
       window.speechSynthesis.speak(utter);
     }
 
-    function installVocabulary(text) {
+    let loadRequest = 0;
+    let loadedFilename = '';
+
+    function installVocabulary(text, filename = 'data_base.csv') {
       const { data, skipped } = readVocabulary(text);
       fullData = data;
       $('lessonFilter').replaceChildren(new Option('All categories', 'all'));
       [...new Set(data.map(item => item.cat))].sort().forEach(cat => $('lessonFilter').add(new Option(cat, cat)));
       for (const id of ['mode', 'lessonFilter', 'activity', 'reset']) $(id).disabled = false;
-      $('loadStatus').textContent = `Loaded ${data.length} vocabulary items from data_base.csv.${skipped ? ` Skipped ${skipped} incomplete or malformed rows.` : ''}`;
+      loadedFilename = filename;
+      $('loadStatus').textContent = `Loaded ${data.length} vocabulary items from ${filename}.${skipped ? ` Skipped ${skipped} incomplete or malformed rows.` : ''}`;
       $('filePanel').hidden = true;
       filterDeck(true);
     }
 
     async function loadVocabulary() {
+      const request = ++loadRequest;
       try {
         const response = await fetch('./data_base.csv');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        installVocabulary(await response.text());
+        const text = await response.text();
+        if (request !== loadRequest) return;
+        installVocabulary(text);
       } catch (error) {
+        if (request !== loadRequest) return;
         $('loadStatus').textContent = `Could not load data_base.csv automatically. ${location.protocol === 'file:' ? 'Your browser may block local file access.' : error.message} Choose the CSV below to continue.`;
         $('filePanel').hidden = false;
       }
     }
 
+    $('loadCsv').addEventListener('click', () => $('csvFile').click());
     $('csvFile').addEventListener('change', async event => {
       const file = event.target.files[0];
       if (!file) return;
-      try { installVocabulary(await file.text()); }
-      catch (error) { $('loadStatus').textContent = `Could not read vocabulary: ${error.message} Choose a valid CSV and try again.`; }
       event.target.value = '';
+      const request = ++loadRequest;
+      $('loadStatus').textContent = `Loading ${file.name}…`;
+      try {
+        const text = await file.text();
+        if (request !== loadRequest) return;
+        installVocabulary(text, file.name);
+      } catch (error) {
+        if (request !== loadRequest) return;
+        $('loadStatus').textContent = `Could not read ${file.name}: ${error.message}${loadedFilename ? ` Still using ${loadedFilename}.` : ''} Select Load vocabulary CSV to try again.`;
+      }
     });
     $('answerForm').addEventListener('submit', checkAnswer);
     $('answer').addEventListener('input', updateAnswerButton);
