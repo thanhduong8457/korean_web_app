@@ -225,8 +225,8 @@
       <button id="reset" disabled>Restart session</button>
       <button id="loadCsv" type="button">Load vocabulary CSV</button>
     </div>
-    <p class="status" id="loadStatus" role="status">Loading data_base.csv…</p>
-    <div class="file-panel" id="filePanel" hidden>
+    <p class="status" id="loadStatus" role="status">Choose a vocabulary database to start practicing.</p>
+    <div class="file-panel" id="filePanel">
       <label for="csvFile">Choose a vocabulary CSV, such as data_base.csv or data_base_new_words.csv:</label>
       <input id="csvFile" type="file" accept=".csv,text/csv">
     </div>
@@ -248,7 +248,7 @@
         <span class="category-badge" id="cardCategory">Vocabulary</span>
         <button class="audio-btn" id="audio" title="Listen to Korean pronunciation" aria-label="Listen to Korean pronunciation" disabled>🔊</button>
         <div class="word-korean" id="frontWord">Ready to learn?</div>
-        <div class="hint" id="cardHint">Your vocabulary will appear here.</div>
+        <div class="hint" id="cardHint">Select Load vocabulary CSV and choose your database to begin.</div>
       </div>
       <div class="card-face back" id="backFace" inert aria-hidden="true">
         <span class="category-badge">Answer</span>
@@ -431,12 +431,13 @@
       if (!current || checked || isStudy()) return;
       const english = isKoreanPrompt();
       const expected = english ? current.en : current.kr;
-      const match = answerVariants(expected, english).includes(normalize($('answer').value, english));
+      const showAnswer = !$('answer').value.trim();
+      const match = !showAnswer && answerVariants(expected, english).includes(normalize($('answer').value, english));
       checked = true;
       answered++;
       if (match) correct++;
-      $('feedback').textContent = match ? `Correct! ${expected}` : `Incorrect. Correct answer: ${expected}`;
-      $('feedback').className = `feedback ${match ? 'correct' : 'incorrect'}`;
+      $('feedback').textContent = showAnswer ? expected : match ? `Correct! ${expected}` : `Incorrect. Correct answer: ${expected}`;
+      $('feedback').className = showAnswer ? 'feedback' : `feedback ${match ? 'correct' : 'incorrect'}`;
       $('answer').disabled = true;
       $('check').disabled = true;
       $('next').hidden = false;
@@ -500,21 +501,6 @@
       filterDeck(true);
     }
 
-    async function loadVocabulary() {
-      const request = ++loadRequest;
-      try {
-        const response = await fetch('./data_base.csv');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const text = await response.text();
-        if (request !== loadRequest) return;
-        installVocabulary(text);
-      } catch (error) {
-        if (request !== loadRequest) return;
-        $('loadStatus').textContent = `Could not load data_base.csv automatically. ${location.protocol === 'file:' ? 'Your browser may block local file access.' : error.message} Choose the CSV below to continue.`;
-        $('filePanel').hidden = false;
-      }
-    }
-
     $('loadCsv').addEventListener('click', () => $('csvFile').click());
     $('csvFile').addEventListener('change', async event => {
       const file = event.target.files[0];
@@ -552,7 +538,7 @@
       else if (event.key === '2') markCard(true);
       else if (event.key.toLowerCase() === 'r') speakCurrent();
     });
-    loadVocabulary();
+    $('loadCsv').focus();
   </script>
 </body>
 </html>
