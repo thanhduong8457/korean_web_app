@@ -1,22 +1,27 @@
-# Korean Vocabulary Practice
+# Language Vocabulary Practice
 
-Open `korean.html` in a browser. On each page load, the app asks you to choose a vocabulary database. Select **Load vocabulary CSV** or use the visible file picker to choose `data_base.csv`, `data_base_new_words.csv`, or another compatible CSV. Practice controls stay disabled until a valid database is loaded; no database loads automatically.
+Open `language_practice.html` in a browser. Choose **Load vocabulary CSV** or use the file picker to select a Korean or Chinese CSV. No vocabulary loads automatically, and an invalid file leaves the current session in place. Loading a valid file starts a new session and sets the practice modes for that language.
 
-Select **Load vocabulary CSV** at any time to switch databases, including `data_base_new_words.csv`. The selected file's name and word count appear above the card. Loading a valid database refreshes categories and starts a new session with zero scores. Canceling the picker or choosing an invalid file preserves the current practice session.
+Included files:
 
-To serve the page locally instead of opening the HTML file directly, run this command from this folder:
+- `data_base.csv`, `lesson_06_vocabulary.csv`, `lesson_07_vocabulary.csv`, and `unit7_appoitment.csv` contain Korean vocabulary.
+- `chinese_vocabulary.csv` contains the 20 Chinese entries from `chinese_branch/new_word.md`. The original `new_word.md` is retained as source material.
+
+CSV headers determine the language:
+
+- Korean: required `Korean` and `English`; optional `Category`.
+- Chinese: required `Simplified` (or `Chinese`) and `Vietnamese`; optional `Traditional`, `Pinyin`, `Category`, and `Example`.
+
+Other columns are ignored. Blank, malformed, incomplete, and duplicate rows are skipped. A file must contain at least one usable entry. The app does not change source files.
+
+Choose a direction and optionally filter by category. Press Enter to check an answer, then Enter again to advance. An empty answer reveals the solution and counts as incorrect. Switching modes preserves session scores; loading another CSV or selecting **Restart session** clears them. Flashcard review, pronunciation, and remembered/practice-again ratings remain available.
+
+For Korean, English answers ignore case, extra whitespace, and final punctuation; spaced slash alternatives and optional parenthetical explanations work as before. For Chinese, Vietnamese answers ignore case and normalize Unicode while keeping accents. Commas, semicolons, and spaced slashes explicitly list Vietnamese alternatives. Chinese answers accept the listed Simplified or Traditional form, but not Pinyin.
+
+The page can be opened directly because it uses a file picker. To serve it locally, run:
 
 ```sh
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Then visit http://127.0.0.1:8000/korean.html.
-
-- Choose Korean → English or English → Korean, optionally filter by category, and type an answer.
-- Press Enter to check; press Enter again or select Next word to continue.
-- Spaced slash alternatives are accepted individually. English matching ignores case and optional parenthetical explanations. Both directions ignore extra whitespace and final sentence punctuation, and normalize Unicode.
-- Category labels distinguish native and Sino-Korean numbers with the same English meaning.
-- Review flashcards retains pronunciation, card flipping, and remembered/practice-again ratings. Pronunciation depends on browser speech support and installed Korean voices.
-- Scores cover typed answers in both modes for the current page session. Switching modes or categories preserves scores; Restart session or reloading the page clears them. Existing CSV history is not changed or included in session totals.
-
-The app uses the CSV's `Korean`, `English`, and optional `Category` columns. Blank, incomplete, malformed, and duplicate records are handled without hard-coded vocabulary. There are no external dependencies.
+Then open http://127.0.0.1:8000/language_practice.html. Pronunciation requires browser speech support and a suitable Korean or Chinese voice.

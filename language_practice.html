@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Korean Vocabulary Practice</title>
+  <title>Language Vocabulary Practice</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -127,7 +127,7 @@
       color: var(--text-sub);
     }
     .audio-btn:hover { color: var(--primary); }
-    .word-korean {
+    .word-primary {
       font-size: 34px;
       font-weight: 700;
       color: #38bdf8;
@@ -186,7 +186,8 @@
     .card { cursor: default; }
     .card-face { overflow-wrap: anywhere; padding: 62px 24px 28px; }
     .category-badge { max-width: calc(100% - 85px); text-align: left; }
-    .word-korean, .word-meaning { font-size: clamp(23px, 5vw, 34px); }
+    .word-primary, .word-meaning { font-size: clamp(23px, 5vw, 34px); }
+    .word-sub, .word-meaning, .feedback { white-space: pre-line; }
     .hint, .shortcuts { color: var(--text-sub); line-height: 1.6; }
     .practice-panel, .study-panel { width: 100%; max-width: 600px; margin-top: 24px; }
     #answer { width: 100%; margin-top: 8px; padding: 14px; font-size: 18px; background: var(--card-bg); color: var(--text-main); border: 1px solid #475569; border-radius: 8px; }
@@ -204,7 +205,7 @@
 </head>
 <body>
   <header>
-    <h1>Korean Vocabulary Practice</h1>
+    <h1 id="pageTitle">Language Vocabulary Practice</h1>
     <p class="intro">A little practice, every day. Choose a direction and test your vocabulary.</p>
     <div class="controls">
       <label>Practice mode
@@ -227,7 +228,7 @@
     </div>
     <p class="status" id="loadStatus" role="status">Choose a vocabulary database to start practicing.</p>
     <div class="file-panel" id="filePanel">
-      <label for="csvFile">Choose a vocabulary CSV, such as data_base.csv or data_base_new_words.csv:</label>
+      <label for="csvFile">Choose a Korean or Chinese vocabulary CSV:</label>
       <input id="csvFile" type="file" accept=".csv,text/csv">
     </div>
     <div class="stats" aria-label="Session progress">
@@ -246,8 +247,9 @@
     <div class="card" id="card">
       <div class="card-face front" id="frontFace">
         <span class="category-badge" id="cardCategory">Vocabulary</span>
-        <button class="audio-btn" id="audio" title="Listen to Korean pronunciation" aria-label="Listen to Korean pronunciation" disabled>🔊</button>
-        <div class="word-korean" id="frontWord">Ready to learn?</div>
+        <button class="audio-btn" id="audio" title="Listen to pronunciation" aria-label="Listen to pronunciation" disabled>🔊</button>
+        <div class="word-primary" id="frontWord">Ready to learn?</div>
+        <div class="word-sub" id="frontDetail"></div>
         <div class="hint" id="cardHint">Select Load vocabulary CSV and choose your database to begin.</div>
       </div>
       <div class="card-face back" id="backFace" inert aria-hidden="true">
@@ -284,8 +286,10 @@
     let fullData = [], deck = [], queue = [], current = null;
     let checked = false, isFlipped = false, learnedCount = 0;
     let answered = 0, correct = 0;
+    let vocabularyLanguage = null;
     const isStudy = () => $('activity').value === 'study';
-    const isKoreanPrompt = () => $('mode').value === 'ko-en';
+    const isSourcePrompt = () => $('mode').value === 'ko-en' || $('mode').value === 'zh-vi';
+    const isChinese = () => vocabularyLanguage === 'zh';
 
     // Parse quoted fields, escaped quotes, BOM, and CRLF without dependencies.
     // Invalid records are discarded; an unterminated quoted record is skipped.
@@ -326,20 +330,28 @@
       if (!header || header.invalid) throw new Error('The CSV header is missing or malformed.');
       const names = header.cells.map(name => name.toLowerCase());
       const kr = names.indexOf('korean'), en = names.indexOf('english'), cat = names.indexOf('category');
-      if (kr < 0 || en < 0) throw new Error('The CSV must contain Korean and English columns.');
-      let skipped = 0;
+      const zh = names.indexOf('simplified') >= 0 ? names.indexOf('simplified') : names.indexOf('chinese');
+      const vi = names.indexOf('vietnamese');
+      const traditional = names.indexOf('traditional'), pinyin = names.indexOf('pinyin');
+      const language = zh >= 0 && vi >= 0 ? 'zh' : kr >= 0 && en >= 0 ? 'ko' : null;
+      if (!language) throw new Error('The CSV needs Korean and English columns, or Simplified (or Chinese) and Vietnamese columns.');
+      let skipped = 0, duplicates = 0;
       const data = [], seen = new Set();
       for (const row of rows) {
         const cells = row.cells;
-        if (row.invalid || cells.length !== names.length || !cells[kr] || !cells[en]) { skipped++; continue; }
+        const word = cells[language === 'zh' ? zh : kr];
+        const meaning = cells[language === 'zh' ? vi : en];
+        if (row.invalid || cells.length !== names.length || !word || !meaning) { skipped++; continue; }
         const category = cat < 0 ? 'General' : cells[cat] || 'General';
-        const key = JSON.stringify([category, cells[kr], cells[en]]);
-        if (seen.has(key)) continue;
+        const key = language === 'zh' ? word.normalize('NFC') : JSON.stringify([category, word, meaning]);
+        if (seen.has(key)) { duplicates++; continue; }
         seen.add(key);
-        data.push({ id: key, kr: cells[kr], en: cells[en], cat: category });
+        data.push({ id: key, word, meaning, cat: category,
+          traditional: language === 'zh' && traditional >= 0 ? cells[traditional] : '',
+          pinyin: language === 'zh' && pinyin >= 0 ? cells[pinyin] : '' });
       }
       if (!data.length) throw new Error('No usable vocabulary rows were found.');
-      return { data, skipped };
+      return { data, language, skipped, duplicates };
     }
 
     function shuffle(items) {
@@ -356,8 +368,8 @@
     }
 
     function avoidRepeat(previous) {
-      if (queue.length > 1 && previous && queue[0].kr === previous.kr) {
-        const different = queue.findIndex(item => item.kr !== previous.kr);
+      if (queue.length > 1 && previous && queue[0].word === previous.word) {
+        const different = queue.findIndex(item => item.word !== previous.word);
         if (different > 0) [queue[0], queue[different]] = [queue[different], queue[0]];
       }
     }
@@ -396,15 +408,18 @@
       $('flip').disabled = !current;
       $('flip').textContent = 'Show answer';
       $('audio').disabled = !current || !('speechSynthesis' in window);
-      $('audio').hidden = !isKoreanPrompt() && !isStudy();
+      $('audio').hidden = !isSourcePrompt() && !isStudy();
       $('cardCategory').textContent = current ? current.cat : 'Complete';
-      $('frontWord').textContent = current ? (isKoreanPrompt() ? current.kr : current.en) : 'All cards remembered!';
-      $('frontWord').lang = isKoreanPrompt() ? 'ko' : 'en';
-      $('backMeaning').textContent = current ? (isKoreanPrompt() ? current.en : current.kr) : 'Restart the session or choose another category.';
-      $('backMeaning').lang = isKoreanPrompt() ? 'en' : 'ko';
-      $('cardHint').textContent = !current ? 'Restart the session or choose another category.' : isStudy() ? 'Select Show answer to review the translation.' : isKoreanPrompt() ? 'What does this mean in English?' : 'How do you say this in Korean?';
-      $('answerLabel').textContent = isKoreanPrompt() ? 'Type the English meaning' : 'Type the Korean word or phrase';
-      $('answer').lang = isKoreanPrompt() ? 'en' : 'ko';
+      $('frontWord').textContent = current ? (isSourcePrompt() ? current.word : current.meaning) : 'All cards remembered!';
+      $('frontWord').lang = isSourcePrompt() ? (isChinese() ? 'zh-Hans' : 'ko') : (isChinese() ? 'vi' : 'en');
+      $('frontDetail').textContent = current && isChinese() && isSourcePrompt() && current.traditional && current.traditional !== current.word ? `Traditional: ${current.traditional}` : '';
+      $('frontDetail').lang = 'zh-Hant';
+      $('backMeaning').textContent = current ? (isChinese() ? isSourcePrompt() ? `Vietnamese: ${current.meaning}${current.pinyin ? `\nPinyin: ${current.pinyin}` : ''}` : chineseAnswer(current) : isSourcePrompt() ? current.meaning : current.word) : 'Restart the session or choose another category.';
+      $('backMeaning').lang = isSourcePrompt() ? (isChinese() ? 'vi' : 'en') : (isChinese() ? 'zh' : 'ko');
+      $('cardHint').textContent = !current ? 'Restart the session or choose another category.' : isStudy() ? 'Select Show answer to review the translation.' : isChinese() ? isSourcePrompt() ? 'Enter the Vietnamese meaning.' : 'Enter the Chinese word.' : isSourcePrompt() ? 'What does this mean in English?' : 'How do you say this in Korean?';
+      $('answerLabel').textContent = isChinese() ? isSourcePrompt() ? 'Enter the Vietnamese meaning' : 'Enter the Chinese word' : isSourcePrompt() ? 'Type the English meaning' : 'Type the Korean word or phrase';
+      $('answer').lang = isSourcePrompt() ? (isChinese() ? 'vi' : 'en') : (isChinese() ? 'zh' : 'ko');
+      $('answerHelp').textContent = isChinese() ? 'Vietnamese answers ignore case but keep accents. Either Chinese form is accepted when listed. Leave the box empty to show the answer and count this question as incorrect.' : 'Use a listed meaning or alternative. Capitalization, extra spaces, and final punctuation are ignored. Leave the box empty to show the answer and count this question as incorrect.';
       $('shortcuts').textContent = isStudy() ? 'Space: flip • 1: practice again • 2: remembered • R: listen' : 'Press Enter to check your answer, then Enter for the next word.';
       updateStats();
       if (current && !isStudy()) $('answer').focus();
@@ -422,6 +437,20 @@
       return parts.map(part => normalize(part, english)).filter(Boolean);
     }
 
+    function chineseAnswer(item) {
+      return `Simplified: ${item.word}${item.traditional && item.traditional !== item.word ? `\nTraditional: ${item.traditional}` : ''}${item.pinyin ? `\nPinyin: ${item.pinyin}` : ''}`;
+    }
+
+    function normalizeChineseAnswer(value, vietnamese) {
+      const clean = value.normalize('NFC').trim().replace(/\s+/gu, ' ');
+      return vietnamese ? clean.toLocaleLowerCase('vi') : clean;
+    }
+
+    function chineseVariants(item, vietnamese) {
+      if (!vietnamese) return [item.word, item.traditional].filter(Boolean);
+      return [item.meaning, ...item.meaning.split(/\s*[,;]\s*|\s+\/\s+/u)].filter(Boolean);
+    }
+
     function updateAnswerButton() {
       $('check').textContent = $('answer').value.trim() ? 'Check answer' : 'Show answer';
     }
@@ -429,14 +458,19 @@
     function checkAnswer(event) {
       event.preventDefault();
       if (!current || checked || isStudy()) return;
-      const english = isKoreanPrompt();
-      const expected = english ? current.en : current.kr;
+      const english = !isChinese() && isSourcePrompt();
+      const expected = isSourcePrompt() ? current.meaning : current.word;
       const showAnswer = !$('answer').value.trim();
-      const match = !showAnswer && answerVariants(expected, english).includes(normalize($('answer').value, english));
+      const match = !showAnswer && (isChinese()
+        ? chineseVariants(current, isSourcePrompt()).some(answer => normalizeChineseAnswer(answer, isSourcePrompt()) === normalizeChineseAnswer($('answer').value, isSourcePrompt()))
+        : answerVariants(expected, english).includes(normalize($('answer').value, english)));
       checked = true;
       answered++;
       if (match) correct++;
-      $('feedback').textContent = showAnswer ? expected : match ? `Correct! ${expected}` : `Incorrect. Correct answer: ${expected}`;
+      const revealed = isChinese() ? isSourcePrompt() ? `Correct answer: ${current.meaning}${current.pinyin ? `\nPinyin: ${current.pinyin}` : ''}` : chineseAnswer(current) : expected;
+      $('feedback').textContent = isChinese()
+        ? showAnswer ? revealed : `${match ? 'Correct!' : 'Incorrect.'}\n${revealed}`
+        : showAnswer ? revealed : match ? `Correct! ${revealed}` : `Incorrect. Correct answer: ${revealed}`;
       $('feedback').className = showAnswer ? 'feedback' : `feedback ${match ? 'correct' : 'incorrect'}`;
       $('answer').disabled = true;
       $('check').disabled = true;
@@ -479,8 +513,8 @@
 
     function speakCurrent() {
       if (!current || !('speechSynthesis' in window)) return;
-      const utter = new SpeechSynthesisUtterance(current.kr);
-      utter.lang = 'ko-KR';
+      const utter = new SpeechSynthesisUtterance(current.word);
+      utter.lang = isChinese() ? 'zh-CN' : 'ko-KR';
       utter.rate = 0.9;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
@@ -489,14 +523,23 @@
     let loadRequest = 0;
     let loadedFilename = '';
 
-    function installVocabulary(text, filename = 'data_base.csv') {
-      const { data, skipped } = readVocabulary(text);
+    function installVocabulary(text, filename = 'vocabulary.csv') {
+      const { data, language, skipped, duplicates } = readVocabulary(text);
       fullData = data;
+      vocabularyLanguage = language;
+      $('mode').replaceChildren(...(language === 'zh'
+        ? [new Option('Chinese → Vietnamese', 'zh-vi'), new Option('Vietnamese → Chinese', 'vi-zh')]
+        : [new Option('Korean → English', 'ko-en'), new Option('English → Korean', 'en-ko')]));
+      $('pageTitle').textContent = language === 'zh' ? 'Chinese Vocabulary Practice' : 'Korean Vocabulary Practice';
+      document.title = $('pageTitle').textContent;
+      const pronunciation = language === 'zh' ? 'Chinese' : 'Korean';
+      $('audio').title = `Listen to ${pronunciation} pronunciation`;
+      $('audio').setAttribute('aria-label', $('audio').title);
       $('lessonFilter').replaceChildren(new Option('All categories', 'all'));
       [...new Set(data.map(item => item.cat))].sort().forEach(cat => $('lessonFilter').add(new Option(cat, cat)));
       for (const id of ['mode', 'lessonFilter', 'activity', 'reset']) $(id).disabled = false;
       loadedFilename = filename;
-      $('loadStatus').textContent = `Loaded ${data.length} vocabulary items from ${filename}.${skipped ? ` Skipped ${skipped} incomplete or malformed rows.` : ''}`;
+      $('loadStatus').textContent = `Loaded ${data.length} ${language === 'zh' ? 'Chinese' : 'Korean'} vocabulary items from ${filename}.${skipped ? ` Skipped ${skipped} incomplete or malformed rows.` : ''}${duplicates ? ` Skipped ${duplicates} duplicate rows.` : ''}`;
       $('filePanel').hidden = true;
       filterDeck(true);
     }
@@ -519,7 +562,7 @@
     });
     $('answerForm').addEventListener('submit', checkAnswer);
     $('answer').addEventListener('input', updateAnswerButton);
-    // Do not submit while Enter is being used to compose Korean text with an IME.
+    // Do not submit while Enter is being used to compose text with an IME.
     $('answer').addEventListener('keydown', event => {
       if (event.key === 'Enter' && (event.isComposing || event.keyCode === 229)) event.preventDefault();
     });
